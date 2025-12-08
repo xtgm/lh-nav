@@ -31,7 +31,7 @@
       <!-- 顶部导航 -->
       <header class="admin-header">
         <div class="header-content">
-          <h1>🛠️ {{ siteConfig.siteName }}管理</h1>
+          <h1>🛠️ {{ adminTitle }}</h1>
           <div class="header-actions">
             <button @click="emergencyReset" class="emergency-btn" hidden="true">🚨 紧急重置</button>
             <button @click="debugLoadData" class="debug-btn" hidden="true">🔍 调试加载</button>
@@ -118,11 +118,6 @@
   </div>
 </template>
 
-
-import { getSiteConfig } from '@/config/site.js'
-
-// 获取网站配置
-const siteConfig = getSiteConfig()
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -145,8 +140,12 @@ const saving = ref(false)
 // 管理界面状态
 const activeTab = ref('categories')
 const categories = ref([])
-const navTitle = ref(siteConfig.siteName) // 保存网站标题
+const navTitle = ref('猫猫导航') // 保存网站标题
 const selectedCategoryId = ref('') // 用于站点管理的选中分类
+
+// 环境变量配置的标题
+const adminTitle = import.meta.env.VITE_ADMIN_TITLE || '导航站管理'
+const envSiteTitle = import.meta.env.VITE_SITE_TITLE
 
 // 紧急兜底：如果5秒后loading还是true，强制重置
 setTimeout(() => {
@@ -175,23 +174,31 @@ const dialogTitle = ref('')
 const dialogMessage = ref('')
 const dialogDetails = ref([])
 
+// 更新浏览器标题
+const updateDocTitle = () => {
+  const t = envSiteTitle || navTitle.value || '猫猫导航'
+  document.title = `${adminTitle} - ${t}`
+}
+
 // 验证管理员密钥
 const handleLogin = async () => {
   loading.value = true
   loginError.value = ''
 
   try {
-    // 使用配置文件中的管理员密码
-    if (!siteConfig.adminPassword) {
-      throw new Error('管理密钥未配置,请配置环境变量 VITE_ADMIN_PASSWORD')
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD
+    if (!adminPassword) {
+      throw new Error('管理密钥未配置，请配置环境变量')
     }
 
-    if (loginPassword.value === siteConfig.adminPassword) {
+    if (loginPassword.value === adminPassword) {
       isAuthenticated.value = true
       localStorage.setItem('admin_authenticated', 'true')
 
-      console.log('登录成功,准备进入管理界面')
+      // 登录成功后，不立即加载数据，让用户进入管理界面
+      console.log('登录成功，准备进入管理界面')
 
+      // 延迟加载，避免阻塞登录流程
       setTimeout(async () => {
         try {
           await loadCategories()
@@ -201,11 +208,12 @@ const handleLogin = async () => {
         }
       }, 500)
     } else {
-      throw new Error('密钥错误,请重新输入')
+      throw new Error('密钥错误，请重新输入')
     }
   } catch (error) {
     loginError.value = error.message
   } finally {
+    // 确保登录流程的loading状态被重置
     if (!isAuthenticated.value) {
       loading.value = false
     }
@@ -261,13 +269,15 @@ const loadCategories = async () => {
     // 直接加载本地数据，避免GitHub API调用
     const { mockData } = await import('../mock/mock_data.js')
     categories.value = mockData.categories || []
-    navTitle.value = mockData.title || '烈火'
+    navTitle.value = mockData.title || '猫猫导航'
+    updateDocTitle() // 加载数据后更新标题
     console.log('✅ 本地数据加载成功，分类数量:', categories.value.length)
   } catch (error) {
     console.error('❌ 本地数据加载失败:', error)
     // 最后兜底：使用空数组
     categories.value = []
-    navTitle.value = '烈火'
+    navTitle.value = '猫猫导航'
+    updateDocTitle()
   } finally {
     // 确保loading状态被重置
     loading.value = false
@@ -315,7 +325,8 @@ const skipLoading = async () => {
   try {
     const { mockData } = await import('../mock/mock_data.js')
     categories.value = mockData.categories || []
-    navTitle.value = mockData.title || '烈火'
+    navTitle.value = mockData.title || '猫猫导航'
+    updateDocTitle()
     console.log('跳过加载后，使用本地数据:', categories.value.length)
   } catch (error) {
     console.error('跳过加载时，本地数据加载失败:', error)
@@ -329,7 +340,8 @@ const skipLoading = async () => {
         sites: []
       }
     ]
-    navTitle.value = '烈火'
+    navTitle.value = '猫猫导航'
+    updateDocTitle()
   }
 
   showDialog(
@@ -399,6 +411,9 @@ const emergencyReset = () => {
 // 组件挂载时检查认证状态
 onMounted(() => {
   console.log('🔍 AdminView组件开始挂载')
+  
+  // 初始设置标题
+  updateDocTitle()
 
   // 立即强制重置loading状态，避免卡死
   loading.value = false
@@ -414,17 +429,20 @@ onMounted(() => {
       // 使用同步方式加载本地数据
       import('../mock/mock_data.js').then(({ mockData }) => {
         categories.value = mockData.categories || []
-        navTitle.value = mockData.title || '烈火'
+        navTitle.value = mockData.title || '猫猫导航'
+        updateDocTitle() // 加载数据后更新标题
         console.log('🔍 本地数据加载成功，分类数量:', categories.value.length)
       }).catch(error => {
         console.error('🔍 本地数据加载失败:', error)
         categories.value = []
-        navTitle.value = '烈火'
+        navTitle.value = '猫猫导航'
+        updateDocTitle()
       })
     } catch (error) {
       console.error('🔍 数据加载异常:', error)
       categories.value = []
-      navTitle.value = '烈火'
+      navTitle.value = '猫猫导航'
+      updateDocTitle()
     }
   }
 
