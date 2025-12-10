@@ -32,7 +32,6 @@
     <aside class="sidebar">
       <!-- Logo区域 -->
       <div class="logo-section">
-        <!-- 动态绑定 src，加上时间戳防缓存 -->
         <img :src="logoUrl" alt="logo" class="logo" @error="handleLogoError" />
         <h1 class="site-title">{{ displayTitle }}</h1>
       </div>
@@ -119,7 +118,7 @@
             </div>
             <button class="close-btn" @click="closeMobileMenu">×</button>
           </div>
-                    <ul class="mobile-category-list">
+          <ul class="mobile-category-list">
             <li
               v-for="category in categories"
               :key="category.id"
@@ -150,7 +149,7 @@
           <button @click="fetchCategories" class="retry-btn">重试</button>
         </div>
 
-                <!-- 分类内容 -->
+        <!-- 分类内容 -->
         <div v-else class="categories-container">
           <section
             v-for="category in categories"
@@ -229,163 +228,116 @@ import duckLogo from '@/assets/duck.png'
 // 导入GitHub logo
 import githubLogo from '@/assets/github.png'
 
-// 使用导航API
 const { categories, title, defaultSearchEngine, loading, error, fetchCategories } = useNavigation()
-
-// 使用主题store
 const themeStore = useThemeStore()
 
 // 响应式数据
-const searchQuery = ref('') // 搜索查询
-const selectedEngine = ref('bing') // 选中的搜索引擎，初始值会在组件挂载后更新
-const showMobileMenu = ref(false) // 移动端菜单显示状态
+const searchQuery = ref('')
+const selectedEngine = ref('bing')
+const showMobileMenu = ref(false)
 
 // 锁定功能相关
-const isLocked = ref(false) // 是否启用锁定功能
-const isUnlocked = ref(false) // 是否已解锁
-const unlockPassword = ref('') // 解锁密码输入
-const unlocking = ref(false) // 解锁中状态
-const unlockError = ref('') // 解锁错误信息
+const isLocked = ref(false)
+const isUnlocked = ref(false)
+const unlockPassword = ref('')
+const unlocking = ref(false)
+const unlockError = ref('')
 
-// 顶部原作者项目地址变量
+// 原作者项目地址
 const projectUrl = 'https://github.com/maodeyu180/mao_nav'
 
-// 计算显示的标题：优先使用环境变量，否则使用接口返回的标题，最后兜底
-const envSiteTitle = import.meta.env.VITE_SITE_TITLE
+// 计算显示的标题：优先使用环境变量
+// VITE_SITE_TITLE 为首选，VITE_SITE_NAME 为次选（您截图里有两种）
+const envSiteTitle = import.meta.env.VITE_SITE_TITLE || import.meta.env.VITE_SITE_NAME
 const displayTitle = computed(() => {
   return envSiteTitle || title.value || '猫猫导航'
 })
 
-// Logo地址带时间戳，防止浏览器强缓存
 const logoUrl = ref('/logo.png')
 
 // 监听标题变化动态更新 document.title
+// 注意：index.html 已通过 vite 插件处理了初始标题，这里是为了防止后续 JS 逻辑意外覆盖
 watch(displayTitle, (newTitle) => {
-  document.title = newTitle
+  if(document.title !== newTitle) {
+    document.title = newTitle
+  }
 }, { immediate: true })
 
-// 搜索引擎配置
 const searchEngines = {
-  google: {
-    url: 'https://www.google.com/search?q=',
-    icon: googleLogo,
-    placeholder: 'Google (点logo切换搜索引擎'
-  },
-  baidu: {
-    url: 'https://www.baidu.com/s?wd=',
-    icon: baiduLogo,
-    placeholder: '百度一下(点logo切换搜索引擎'
-  },
-  bing: {
-    url: 'https://www.bing.com/search?q=',
-    icon: bingLogo,
-    placeholder: 'Bing (点logo切换搜索引擎)'
-  },
-  duckduckgo: {
-    url: 'https://duckduckgo.com/?q=',
-    icon: duckLogo,
-    placeholder: 'DuckDuckGo (点logo切换搜索引擎)'
-  }
+  google: { url: 'https://www.google.com/search?q=', icon: googleLogo, placeholder: 'Google (点logo切换搜索引擎' },
+  baidu: { url: 'https://www.baidu.com/s?wd=', icon: baiduLogo, placeholder: '百度一下(点logo切换搜索引擎' },
+  bing: { url: 'https://www.bing.com/search?q=', icon: bingLogo, placeholder: 'Bing (点logo切换搜索引擎)' },
+  duckduckgo: { url: 'https://duckduckgo.com/?q=', icon: duckLogo, placeholder: 'DuckDuckGo (点logo切换搜索引擎)' }
 }
 
-// 自定义固定时间滚动函数
 const smoothScrollTo = (container, targetTop, duration = 600) => {
   const startTop = container.scrollTop
   const distance = targetTop - startTop
   let startTime = null
-
   const animateScroll = (currentTime) => {
     if (startTime === null) startTime = currentTime
     const timeElapsed = currentTime - startTime
     const progress = Math.min(timeElapsed / duration, 1)
-
-    // 使用缓动函数 (easeInOutCubic)
-    const ease = progress < 0.5
-      ? 4 * progress * progress * progress
-      : 1 - Math.pow(-2 * progress + 2, 3) / 2
-
+    const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2
     container.scrollTop = startTop + distance * ease
-
-    if (progress < 1) {
-      requestAnimationFrame(animateScroll)
-    }
+    if (progress < 1) requestAnimationFrame(animateScroll)
   }
-
   requestAnimationFrame(animateScroll)
 }
 
-// 滚动到指定分类
 const scrollToCategory = (categoryId) => {
   const element = document.getElementById(`category-${categoryId}`)
   const container = document.querySelector('.content-area')
-
   if (element && container) {
-    // 检查是否为移动端
     const isMobile = window.innerWidth <= 768
-
     let targetTop = 0
-
     if (isMobile) {
-      // 移动端：在 content-area 容器内滚动
       const elementOffsetTop = element.offsetTop
-      const searchHeaderHeight = 80 // 固定高度，因为搜索框是fixed定位
+      const searchHeaderHeight = 80
       targetTop = elementOffsetTop - searchHeaderHeight
     } else {
-      // 桌面端：在容器内滚动
       const searchHeader = document.querySelector('.search-header')
       const elementOffsetTop = element.offsetTop
       const searchHeaderHeight = searchHeader ? searchHeader.offsetHeight + 20 : 100
       targetTop = elementOffsetTop - searchHeaderHeight
     }
-
-    // 使用固定时间滚动（600毫秒）
     smoothScrollTo(container, Math.max(0, targetTop), 600)
   }
 }
 
-// 检查是否启用锁定功能
+// 核心修复：更严格的锁定判断逻辑
 const checkLockStatus = () => {
-  const openLock = import.meta.env.VITE_OPEN_LOCK
+  // 获取环境变量
+  const openLockEnv = import.meta.env.VITE_OPEN_LOCK
   
-  // 打印调试信息，方便排查
-  console.log('🔒 Lock Debug - Raw Value:', openLock)
-  
-  // 核心修复：转为字符串、去除前后空格、转小写
-  // 这样 ' false ', '0', undefined, null, '' 都会被正确识别为非 'true'
-  const lockValue = String(openLock || '').trim().toLowerCase()
-  console.log('🔒 Lock Debug - Processed:', lockValue)
+  // 将其转换为字符串、去空格、转小写
+  // 这样 "false", "0", undefined, null 都会被排除
+  // 只有明确写了 "true" (不区分大小写) 才会开启锁定
+  const isLockEnabled = String(openLockEnv || '').trim().toLowerCase() === 'true'
 
-  if (lockValue === 'true') {
+  if (isLockEnabled) {
     isLocked.value = true
-    // 检查是否已经解锁过
     const savedUnlock = localStorage.getItem('nav_unlocked')
     if (savedUnlock === 'true') {
       isUnlocked.value = true
     }
   } else {
-    // 只要不是明确的 'true'，就强制设为未锁定
+    // 强制设为未锁定
     isLocked.value = false
-    isUnlocked.value = true 
+    isUnlocked.value = true
   }
 }
 
-// 处理解锁
 const handleUnlock = async () => {
   unlocking.value = true
   unlockError.value = ''
-
-    try {
+  try {
     const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD
-
-    if (!adminPassword) {
-      throw new Error('访问密钥未配置')
-    }
-
+    if (!adminPassword) throw new Error('访问密钥未配置')
     if (unlockPassword.value === adminPassword) {
       isUnlocked.value = true
       localStorage.setItem('nav_unlocked', 'true')
       unlockPassword.value = ''
-      console.log('导航站解锁成功')
     } else {
       throw new Error('访问密钥错误，请重新输入')
     }
@@ -396,84 +348,64 @@ const handleUnlock = async () => {
   }
 }
 
-// 处理搜索
 const handleSearch = () => {
   if (!searchQuery.value.trim()) return
-
   const engine = searchEngines[selectedEngine.value]
   const url = engine.url + encodeURIComponent(searchQuery.value)
   window.open(url, '_blank')
 }
 
-// 处理图片加载错误
 const handleImageError = (event) => {
-  // 设置默认的 favicon.ico 作为 fallback 图片
   if (event.target.src.includes('?')) {
-    // 只有当带参数的logo加载失败时，才尝试不带参数的
     event.target.src = '/favicon.ico'
   }
-  event.target.onerror = null // 防止无限循环
+  event.target.onerror = null
 }
 
-// 处理Logo加载错误 - 修正版
 const handleLogoError = (event) => {
-  // 如果加载带时间戳的图片失败，尝试加载原始 /logo.png
   if (event.target.src.includes('?')) {
     event.target.src = '/logo.png'
   } else {
-    // 如果原始图片也失败，隐藏或显示默认
     event.target.style.display = 'none'
   }
 }
 
-// 移动端菜单控制
 const toggleMobileMenu = () => {
   showMobileMenu.value = !showMobileMenu.value
-  // 控制body滚动
-  if (showMobileMenu.value) {
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = ''
-  }
+  document.body.style.overflow = showMobileMenu.value ? 'hidden' : ''
 }
 
 const closeMobileMenu = () => {
   showMobileMenu.value = false
-  // 恢复body滚动
   document.body.style.overflow = ''
 }
 
-// 移动端分类滚动
 const scrollToCategoryMobile = (categoryId) => {
-  closeMobileMenu() // 先关闭菜单
-
-  // 稍微延迟一下再滚动，确保菜单关闭动画完成
+  closeMobileMenu()
   setTimeout(() => {
     scrollToCategory(categoryId)
   }, 200)
 }
 
-// 打开GitHub项目页面
 const openGitHub = () => {
   window.open(projectUrl, '_blank')
 }
 
-// 组件挂载时获取数据
 onMounted(async () => {
-  checkLockStatus() // 检查锁定状态
+  // 1. 先检查锁定状态，防止页面闪现内容
+  checkLockStatus()
   
-  // 给Logo增加时间戳，强制刷新缓存
-  // 这里的逻辑是：每次加载页面都尝试获取最新的 logo.png
+  // 2. 强制刷新Logo缓存
   logoUrl.value = `/logo.png?t=${new Date().getTime()}`
 
-  await fetchCategories()
-  // 设置默认搜索引擎
+  // 3. 设置默认搜索引擎
   selectedEngine.value = defaultSearchEngine.value
+
+  // 4. 获取分类数据
+  await fetchCategories()
 })
 
-// 组件卸载时清理样式
 onUnmounted(() => {
-  // 确保卸载时恢复body滚动
   document.body.style.overflow = ''
 })
 </script>
@@ -1526,3 +1458,809 @@ onUnmounted(() => {
   box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
 }
 </style>
+--- START OF FILE lh-nav-main/src/views/AdminView.vue ---
+
+<template>
+  <div class="admin-container">
+    <!-- 登录界面 -->
+    <div v-if="!isAuthenticated" class="login-container">
+      <div class="login-box">
+        <h1>🔐 {{ adminPageTitle }}</h1>
+        <form @submit.prevent="handleLogin">
+          <div class="form-group">
+            <label for="password">管理密钥:</label>
+            <input
+              id="password"
+              type="password"
+              v-model="loginPassword"
+              placeholder="请输入管理密钥"
+              required
+              class="form-input"
+            />
+          </div>
+          <button type="submit" class="login-btn" :disabled="loading">
+            {{ loading ? '验证中...' : '登录' }}
+          </button>
+        </form>
+        <div v-if="loginError" class="error-message">
+          {{ loginError }}
+        </div>
+      </div>
+    </div>
+
+    <!-- 管理界面 -->
+    <div v-else class="admin-dashboard">
+      <!-- 顶部导航 -->
+      <header class="admin-header">
+        <div class="header-content">
+          <h1>🛠️ {{ adminPageTitle }}</h1>
+          <div class="header-actions">
+            <button @click="emergencyReset" class="emergency-btn" hidden="true">🚨 紧急重置</button>
+            <button @click="debugLoadData" class="debug-btn" hidden="true">🔍 调试加载</button>
+            <span class="user-info">管理员</span>
+            <button @click="logout" class="logout-btn">退出</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- 主要内容 -->
+      <main class="admin-main">
+        <!-- 加载状态显示 -->
+        <div v-if="loading" class="loading-overlay">
+          <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>正在加载数据...</p>
+            <button @click="skipLoading" class="skip-loading-btn">跳过加载</button>
+          </div>
+        </div>
+
+        <div class="admin-tabs">
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'categories' }"
+            @click="activeTab = 'categories'"
+          >
+            📁 分类管理
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'sites' }"
+            @click="switchToSiteTab"
+          >
+            🌐 站点管理
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'settings' }"
+            @click="activeTab = 'settings'"
+          >
+            ⚙️ 系统设置
+          </button>
+        </div>
+
+        <!-- 分类管理 -->
+        <div v-if="activeTab === 'categories'" class="tab-content">
+          <CategoryManager
+            :categories="categories"
+            @update="handleCategoriesUpdate"
+            @save="saveToGitHub"
+            @viewSites="switchToSiteManager"
+            :loading="saving"
+          />
+        </div>
+
+        <!-- 站点管理 -->
+        <div v-if="activeTab === 'sites'" class="tab-content">
+          <SiteManager
+            :categories="categories"
+            :initialSelectedCategoryId="selectedCategoryId"
+            @update="handleCategoriesUpdate"
+            @save="saveToGitHub"
+            :loading="saving"
+          />
+        </div>
+
+        <!-- 系统设置 -->
+        <div v-if="activeTab === 'settings'" class="tab-content">
+          <SystemSettings />
+        </div>
+      </main>
+    </div>
+
+    <!-- 自定义弹框 -->
+    <CustomDialog
+      :visible="dialogVisible"
+      :type="dialogType"
+      :title="dialogTitle"
+      :message="dialogMessage"
+      :details="dialogDetails"
+      @close="closeDialog"
+      @confirm="closeDialog"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import CategoryManager from '../components/admin/CategoryManager.vue'
+import SiteManager from '../components/admin/SiteManager.vue'
+import SystemSettings from '../components/admin/SystemSettings.vue'
+import CustomDialog from '../components/admin/CustomDialog.vue'
+import { useGitHubAPI } from '../apis/useGitHubAPI.js'
+
+const router = useRouter()
+const { saveCategoriesToGitHub, loadCategoriesFromGitHub } = useGitHubAPI()
+
+// 认证状态
+const isAuthenticated = ref(false)
+const loginPassword = ref('')
+const loginError = ref('')
+const loading = ref(false)
+const saving = ref(false)
+
+// 管理界面状态
+const activeTab = ref('categories')
+const categories = ref([])
+const navTitle = ref('猫猫导航') 
+const selectedCategoryId = ref('') 
+
+// 环境变量配置的标题
+const envAdminTitle = import.meta.env.VITE_ADMIN_TITLE
+const envSiteTitle = import.meta.env.VITE_SITE_TITLE
+
+// 计算属性：智能处理后台标题
+// 修复逻辑：如果配置了 VITE_ADMIN_TITLE，就直接用它，不再拼接。
+// 只有在没配置后台标题时，才自动使用 "导航站管理 - 网站名"
+const adminPageTitle = computed(() => {
+  if (envAdminTitle) {
+    return envAdminTitle // 用户自定义了，完全听用户的
+  }
+  // 用户没定义，使用默认格式
+  const siteName = envSiteTitle || navTitle.value || '猫猫导航'
+  return `导航站管理 - ${siteName}`
+})
+
+// 紧急兜底：如果5秒后loading还是true，强制重置
+setTimeout(() => {
+  if (loading.value) {
+    console.warn('检测到loading状态异常，强制重置')
+    loading.value = false
+    // 确保至少有基本数据
+    if (categories.value.length === 0) {
+      categories.value = [
+        {
+          id: 'default',
+          name: '默认分类',
+          icon: '📁',
+          order: 0,
+          sites: []
+        }
+      ]
+    }
+  }
+}, 5000)
+
+// 自定义弹框状态
+const dialogVisible = ref(false)
+const dialogType = ref('success')
+const dialogTitle = ref('')
+const dialogMessage = ref('')
+const dialogDetails = ref([])
+
+// 更新浏览器标题 (Tab上的文字)
+const updateDocTitle = () => {
+  document.title = adminPageTitle.value
+}
+
+// 验证管理员密钥
+const handleLogin = async () => {
+  loading.value = true
+  loginError.value = ''
+
+  try {
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD
+    if (!adminPassword) {
+      throw new Error('管理密钥未配置，请配置环境变量')
+    }
+
+    if (loginPassword.value === adminPassword) {
+      isAuthenticated.value = true
+      localStorage.setItem('admin_authenticated', 'true')
+
+      // 登录成功后，不立即加载数据，让用户进入管理界面
+      console.log('登录成功，准备进入管理界面')
+
+      // 延迟加载，避免阻塞登录流程
+      setTimeout(async () => {
+        try {
+          await loadCategories()
+        } catch (error) {
+          console.error('登录后数据加载失败:', error)
+          loading.value = false
+        }
+      }, 500)
+    } else {
+      throw new Error('密钥错误，请重新输入')
+    }
+  } catch (error) {
+    loginError.value = error.message
+  } finally {
+    // 确保登录流程的loading状态被重置
+    if (!isAuthenticated.value) {
+      loading.value = false
+    }
+  }
+}
+
+// 退出登录
+const logout = () => {
+  isAuthenticated.value = false
+  localStorage.removeItem('admin_authenticated')
+  loginPassword.value = ''
+  router.push('/')
+}
+
+// 调试加载数据
+const debugLoadData = async () => {
+  console.log('=== 开始调试加载数据 ===')
+  console.log('当前环境变量:', {
+    VITE_GITHUB_TOKEN: import.meta.env.VITE_GITHUB_TOKEN ? '已配置' : '未配置',
+    VITE_GITHUB_OWNER: import.meta.env.VITE_GITHUB_OWNER,
+    VITE_GITHUB_REPO: import.meta.env.VITE_GITHUB_REPO,
+    VITE_GITHUB_BRANCH: import.meta.env.VITE_GITHUB_BRANCH
+  })
+
+  try {
+    console.log('直接调用loadCategoriesFromGitHub...')
+    const data = await loadCategoriesFromGitHub()
+    console.log('调用成功，返回数据:', data)
+
+    showDialog(
+      'success',
+      '🎉 调试成功',
+      '直接调用GitHub API成功',
+      [`• 数据类型: ${typeof data}`, `• 包含categories: ${!!data.categories}`, `• 分类数量: ${data.categories?.length || 0}`]
+    )
+  } catch (error) {
+    console.error('直接调用失败:', error)
+    showDialog(
+      'error',
+      '❌ 调试失败',
+      '直接调用GitHub API失败',
+      [`• 错误信息: ${error.message}`, `• 错误类型: ${error.constructor.name}`]
+    )
+  }
+}
+
+// 加载分类数据（简化版本，暂时只加载本地数据）
+const loadCategories = async () => {
+  console.log('🔍 开始加载分类数据（简化版本）')
+  loading.value = true
+
+  try {
+    // 直接加载本地数据，避免GitHub API调用
+    const { mockData } = await import('../mock/mock_data.js')
+    categories.value = mockData.categories || []
+    navTitle.value = mockData.title || '猫猫导航'
+    updateDocTitle() // 加载数据后更新标题
+    console.log('✅ 本地数据加载成功，分类数量:', categories.value.length)
+  } catch (error) {
+    console.error('❌ 本地数据加载失败:', error)
+    // 最后兜底：使用空数组
+    categories.value = []
+    navTitle.value = '猫猫导航'
+    updateDocTitle()
+  } finally {
+    // 确保loading状态被重置
+    loading.value = false
+    console.log('🔍 数据加载完成，loading状态重置')
+  }
+}
+
+// 处理分类更新
+const handleCategoriesUpdate = (newCategories) => {
+  categories.value = newCategories
+}
+
+// 切换到站点管理并选中对应分类
+const switchToSiteManager = (categoryId) => {
+  selectedCategoryId.value = categoryId
+  activeTab.value = 'sites'
+}
+
+// 手动切换到站点管理标签
+const switchToSiteTab = () => {
+  selectedCategoryId.value = '' // 清空选中分类，显示所有站点
+  activeTab.value = 'sites'
+}
+
+// 显示弹框
+const showDialog = (type, title, message, details = []) => {
+  dialogType.value = type
+  dialogTitle.value = title
+  dialogMessage.value = message
+  dialogDetails.value = details
+  dialogVisible.value = true
+}
+
+// 关闭弹框
+const closeDialog = () => {
+  dialogVisible.value = false
+}
+
+// 跳过加载
+const skipLoading = async () => {
+  console.log('用户选择跳过加载')
+  loading.value = false
+
+  // 尝试加载本地数据
+  try {
+    const { mockData } = await import('../mock/mock_data.js')
+    categories.value = mockData.categories || []
+    navTitle.value = mockData.title || '猫猫导航'
+    updateDocTitle()
+    console.log('跳过加载后，使用本地数据:', categories.value.length)
+  } catch (error) {
+    console.error('跳过加载时，本地数据加载失败:', error)
+    // 最基本的兜底数据
+    categories.value = [
+      {
+        id: 'default',
+        name: '默认分类',
+        icon: '📁',
+        order: 0,
+        sites: []
+      }
+    ]
+    navTitle.value = '猫猫导航'
+    updateDocTitle()
+  }
+
+  showDialog(
+    'info',
+    '⏭️ 已跳过加载',
+    '已跳过GitHub数据加载，当前使用本地数据',
+    [`• 分类数量: ${categories.value.length}`, `• 可在系统设置中重新尝试连接GitHub`]
+  )
+}
+
+// 保存到GitHub
+const saveToGitHub = async () => {
+  saving.value = true
+  try {
+    // 保存完整的数据结构，包括title字段
+    await saveCategoriesToGitHub({
+      categories: categories.value,
+      title: navTitle.value
+    })
+    showDialog(
+      'success',
+      '🎉 保存成功',
+      '您的更改已成功保存到GitHub仓库！',
+      [
+        '• 更改将在 2-3 分钟内自动部署到线上',
+        '• 部署完成后，您可以在前台页面看到最新内容',
+        '• 如有问题，请检查Vercel或CFpage是否触发自动部署'
+      ]
+    )
+  } catch (error) {
+    showDialog(
+      'error',
+      '❌ 保存失败',
+      '保存过程中发生错误，请重试',
+      [`• 错误详情: ${error.message}`]
+    )
+  } finally {
+    saving.value = false
+  }
+}
+
+// 紧急重置加载状态
+const emergencyReset = () => {
+  console.log('用户点击紧急重置按钮，强制重置loading状态')
+  loading.value = false
+  // 强制DOM更新，确保loading状态同步到模板
+  setTimeout(() => {
+    console.log('🔍 延迟检查loading状态:', loading.value)
+    console.log('🔍 DOM中loading元素:', document.querySelector('.loading-overlay'))
+    console.log('🔍 DOM中tab按钮:', document.querySelectorAll('.tab-btn'))
+
+    // 如果loading overlay仍然存在，强制隐藏
+    const loadingOverlay = document.querySelector('.loading-overlay')
+    if (loadingOverlay) {
+      console.warn('🔍 发现loading overlay仍然存在，强制隐藏')
+      loadingOverlay.style.display = 'none'
+    }
+  }, 100)
+  showDialog(
+    'info',
+    '⚠️ 加载状态已重置',
+    '已强制重置加载状态，请刷新页面查看效果。',
+    []
+  )
+}
+
+// 组件挂载时检查认证状态
+onMounted(() => {
+  console.log('🔍 AdminView组件开始挂载')
+  
+  // 初始设置标题
+  updateDocTitle()
+
+  // 立即强制重置loading状态，避免卡死
+  loading.value = false
+
+  const savedAuth = localStorage.getItem('admin_authenticated')
+  if (savedAuth === 'true') {
+    console.log('🔍 检测到已登录状态')
+    isAuthenticated.value = true
+
+    // 直接使用本地数据，不调用GitHub API
+    console.log('🔍 直接加载本地数据，跳过GitHub API调用')
+    try {
+      // 使用同步方式加载本地数据
+      import('../mock/mock_data.js').then(({ mockData }) => {
+        categories.value = mockData.categories || []
+        navTitle.value = mockData.title || '猫猫导航'
+        updateDocTitle() // 加载数据后更新标题
+        console.log('🔍 本地数据加载成功，分类数量:', categories.value.length)
+      }).catch(error => {
+        console.error('🔍 本地数据加载失败:', error)
+        categories.value = []
+        navTitle.value = '猫猫导航'
+        updateDocTitle()
+      })
+    } catch (error) {
+      console.error('🔍 数据加载异常:', error)
+      categories.value = []
+      navTitle.value = '猫猫导航'
+      updateDocTitle()
+    }
+  }
+
+  console.log('🔍 AdminView组件挂载完成')
+})
+</script>
+
+<style scoped>
+.admin-container {
+  min-height: 100vh;
+  background: #2c3e50;
+}
+
+/* 登录界面样式 */
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.login-box {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-box h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #2c3e50;
+  font-size: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #555;
+  font-weight: 500;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e1e1e1;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.login-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.error-message {
+  margin-top: 15px;
+  padding: 10px;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* 管理界面样式 */
+.admin-dashboard {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.admin-header {
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-content h1 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 20px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-info {
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.emergency-btn {
+  padding: 8px 16px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+  margin-right: 15px;
+}
+
+.emergency-btn:hover {
+  background: #c0392b;
+}
+
+.debug-btn {
+  padding: 8px 16px;
+  background: #f39c12;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+  margin-right: 15px;
+}
+
+.debug-btn:hover {
+  background: #e67e22;
+}
+
+.logout-btn {
+  padding: 8px 16px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+  margin-right: 15px;
+}
+
+.logout-btn:hover {
+  background: #c0392b;
+}
+
+.admin-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+/* loading overlay 样式 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(3px);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.admin-tabs {
+  display: flex;
+  background: white;
+  border-radius: 8px;
+  padding: 5px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7f8c8d;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  background: #3498db;
+  color: white;
+}
+
+.tab-btn:hover:not(.active) {
+  background: #f8f9fa;
+  color: #2c3e50;
+}
+
+.tab-content {
+  background: white;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 跳过加载按钮样式 */
+.skip-loading-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: #f39c12;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.skip-loading-btn:hover {
+  background: #e67e22;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .header-content {
+    padding: 15px 20px;
+  }
+
+  .admin-main {
+    padding: 20px 15px;
+  }
+
+  .tab-content {
+    padding: 20px 15px;
+  }
+
+  .admin-tabs {
+    flex-direction: column;
+  }
+
+  .tab-btn {
+    margin-bottom: 5px;
+  }
+}
+</style>
+--- START OF FILE lh-nav-main/vite.config.js ---
+
+import { fileURLToPath, URL } from 'node:url'
+import { defineConfig, loadEnv } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import vueDevTools from 'vite-plugin-vue-devtools'
+
+export default defineConfig(({ mode }) => {
+  // 加载环境变量
+  const env = loadEnv(mode, process.cwd(), '')
+  
+  // 核心：优先获取 VITE_SITE_TITLE，如果没有则尝试 VITE_SITE_NAME，最后使用默认值
+  // 这里的优先级一定要和 NavHomeView.vue 中的逻辑一致
+  const appTitle = env.VITE_SITE_TITLE || env.VITE_SITE_NAME || '猫猫导航'
+
+  return {
+    plugins: [
+      vue(),
+      vueDevTools(),
+      // 核心修复插件：构建时直接替换 HTML 标题
+      {
+        name: 'html-title-transform',
+        transformIndexHtml(html) {
+          // 查找 <title>...</title> 标签并替换内容
+          return html.replace(
+            /<title>(.*?)<\/title>/,
+            `<title>${appTitle}</title>`
+          )
+        }
+      }
+    ],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url))
+      }
+    }
+  }
+})
