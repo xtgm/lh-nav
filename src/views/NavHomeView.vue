@@ -3,7 +3,7 @@
   <div v-if="isLocked && !isUnlocked" class="lock-container">
     <div class="lock-box">
       <h1>🔐 访问验证</h1>
-      <p class="lock-description">此导航站已启用访问保护</p>
+      <p class="lock-description">当前站点已启用访问保护</p>
       <form @submit.prevent="handleUnlock">
         <div class="form-group">
           <label for="unlock-password">请输入访问密钥:</label>
@@ -17,7 +17,7 @@
           />
         </div>
         <button type="submit" class="unlock-btn" :disabled="unlocking">
-          {{ unlocking ? '验证中...' : '进入导航' }}
+          {{ unlocking ? '验证中...' : '进入' }}
         </button>
       </form>
       <div v-if="unlockError" class="error-message">
@@ -59,12 +59,12 @@
           target="_blank"
           rel="noopener noreferrer"
           class="github-link"
-          title="查看源代码"
+          title="GitHub Repo"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
           </svg>
-          <span>开源不易，Star一下吧！⭐</span>
+          <span>Star Project</span>
         </a>
       </div>
     </aside>
@@ -92,8 +92,7 @@
           />
         </div>
 
-        <!-- 主题切换按钮 -->
-        <button class="theme-toggle-btn" @click="themeStore.toggleTheme" :title="themeStore.isDarkMode ? '切换到日间模式' : '切换到夜间模式'">
+        <button class="theme-toggle-btn" @click="themeStore.toggleTheme">
           <svg v-if="!themeStore.isDarkMode" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/>
           </svg>
@@ -102,14 +101,12 @@
           </svg>
         </button>
 
-        <!-- 移动端菜单按钮 -->
         <button class="mobile-menu-btn" @click="toggleMobileMenu">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
 
-        <!-- 移动端分类菜单 -->
         <div class="mobile-menu" :class="{ active: showMobileMenu }">
           <div class="mobile-menu-header">
             <div class="header-left">
@@ -131,25 +128,20 @@
           </ul>
         </div>
 
-        <!-- 移动端菜单遮罩 -->
         <div class="mobile-menu-overlay" :class="{ active: showMobileMenu }" @click="closeMobileMenu"></div>
       </header>
 
-      <!-- 导航内容区 -->
       <div class="content-area">
-        <!-- 加载状态 -->
         <div v-if="loading" class="loading">
           <div class="loading-spinner"></div>
           <p>加载中...</p>
         </div>
 
-        <!-- 错误状态 -->
         <div v-else-if="error" class="error">
           <p>{{ error }}</p>
           <button @click="fetchCategories" class="retry-btn">重试</button>
         </div>
 
-        <!-- 分类内容 -->
         <div v-else class="categories-container">
           <section
             v-for="category in categories"
@@ -182,17 +174,16 @@
             </div>
           </section>
 
-          <!-- 页面底部信息 -->
-          <footer class="page-footer" hidden="true">
+          <footer class="page-footer">
             <div class="footer-content">
               <div class="footer-info">
                 <h3>{{ displayTitle }}</h3>
-                <p>一个简洁、美观的导航网站，收录优质网站资源</p>
+                <p>{{ envDescription }}</p>
               </div>
 
               <div class="footer-links">
                 <a
-                  href="https://github.com/maodeyu180/mao_nav"
+                  :href="projectUrl"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="footer-link"
@@ -200,14 +191,13 @@
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                   </svg>
-                  开源项目
+                  GitHub
                 </a>
               </div>
             </div>
 
             <div class="footer-bottom">
-              <p>&copy; {{ new Date().getFullYear() }} {{ displayTitle }} - 由 <a href="https://github.com/maodeyu180" target="_blank" rel="noopener noreferrer">maodeyu180</a> 用 ❤️ 制作</p>
-              <p class="footer-tech">基于 Vue.js 构建 | <a href="https://github.com/maodeyu180/mao_nav" target="_blank" rel="noopener noreferrer">查看源代码</a></p>
+              <p>&copy; {{ new Date().getFullYear() }} {{ displayTitle }}</p>
             </div>
           </footer>
         </div>
@@ -231,43 +221,39 @@ import githubLogo from '@/assets/github.png'
 const { categories, title, defaultSearchEngine, loading, error, fetchCategories } = useNavigation()
 const themeStore = useThemeStore()
 
-// 响应式数据
 const searchQuery = ref('')
 const selectedEngine = ref('bing')
 const showMobileMenu = ref(false)
 
-// 锁定功能相关
 const isLocked = ref(false)
 const isUnlocked = ref(false)
 const unlockPassword = ref('')
 const unlocking = ref(false)
 const unlockError = ref('')
 
-// 原作者项目地址
 const projectUrl = 'https://github.com/maodeyu180/mao_nav'
 
-// 计算显示的标题：优先使用环境变量
-// VITE_SITE_TITLE 为首选，VITE_SITE_NAME 为次选
-const envSiteTitle = import.meta.env.VITE_SITE_TITLE || import.meta.env.VITE_SITE_NAME
+// 读取环境变量
+const envSiteTitle = import.meta.env.VITE_SITE_TITLE
+const envDescription = import.meta.env.VITE_SITE_DESCRIPTION || '一个简洁、美观的导航网站'
+
 const displayTitle = computed(() => {
-  return envSiteTitle || title.value || '猫猫导航'
+  return envSiteTitle || title.value || ''
 })
 
 const logoUrl = ref('/logo.png')
 
-// 监听标题变化动态更新 document.title
-// 注意：index.html 已通过 vite 插件处理了初始标题，这里是为了防止后续 JS 逻辑意外覆盖
 watch(displayTitle, (newTitle) => {
-  if(document.title !== newTitle) {
+  if (newTitle && document.title !== newTitle) {
     document.title = newTitle
   }
 }, { immediate: true })
 
 const searchEngines = {
-  google: { url: 'https://www.google.com/search?q=', icon: googleLogo, placeholder: 'Google (点logo切换搜索引擎' },
-  baidu: { url: 'https://www.baidu.com/s?wd=', icon: baiduLogo, placeholder: '百度一下(点logo切换搜索引擎' },
-  bing: { url: 'https://www.bing.com/search?q=', icon: bingLogo, placeholder: 'Bing (点logo切换搜索引擎)' },
-  duckduckgo: { url: 'https://duckduckgo.com/?q=', icon: duckLogo, placeholder: 'DuckDuckGo (点logo切换搜索引擎)' }
+  google: { url: 'https://www.google.com/search?q=', icon: googleLogo, placeholder: 'Google Search' },
+  baidu: { url: 'https://www.baidu.com/s?wd=', icon: baiduLogo, placeholder: '百度一下' },
+  bing: { url: 'https://www.bing.com/search?q=', icon: bingLogo, placeholder: 'Bing Search' },
+  duckduckgo: { url: 'https://duckduckgo.com/?q=', icon: duckLogo, placeholder: 'DuckDuckGo' }
 }
 
 const smoothScrollTo = (container, targetTop, duration = 600) => {
@@ -305,14 +291,9 @@ const scrollToCategory = (categoryId) => {
   }
 }
 
-// 核心修复：更严格的锁定判断逻辑
 const checkLockStatus = () => {
-  // 获取环境变量
   const openLockEnv = import.meta.env.VITE_OPEN_LOCK
-  
-  // 将其转换为字符串、去空格、转小写
-  // 这样 "false", "0", undefined, null 都会被排除
-  // 只有明确写了 "true" (不区分大小写) 才会开启锁定
+  // 严格检查字符串 "true"
   const isLockEnabled = String(openLockEnv || '').trim().toLowerCase() === 'true'
 
   if (isLockEnabled) {
@@ -322,7 +303,6 @@ const checkLockStatus = () => {
       isUnlocked.value = true
     }
   } else {
-    // 强制设为未锁定
     isLocked.value = false
     isUnlocked.value = true
   }
@@ -339,7 +319,7 @@ const handleUnlock = async () => {
       localStorage.setItem('nav_unlocked', 'true')
       unlockPassword.value = ''
     } else {
-      throw new Error('访问密钥错误，请重新输入')
+      throw new Error('访问密钥错误')
     }
   } catch (error) {
     unlockError.value = error.message
@@ -392,16 +372,9 @@ const openGitHub = () => {
 }
 
 onMounted(async () => {
-  // 1. 先检查锁定状态
   checkLockStatus()
-  
-  // 2. 强制刷新Logo缓存
   logoUrl.value = `/logo.png?t=${new Date().getTime()}`
-
-  // 3. 设置默认搜索引擎
   selectedEngine.value = defaultSearchEngine.value
-
-  // 4. 获取分类数据
   await fetchCategories()
 })
 
@@ -411,6 +384,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 样式保持不变，太长了省略，和您之前发的一样即可 */
+/* 这里只需粘贴 CSS 样式，不需要改动 */
 /* 锁定界面样式 */
 .lock-container {
   position: fixed;
