@@ -4,21 +4,26 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 export default defineConfig(({ mode }) => {
-  // 加载环境变量
   const env = loadEnv(mode, process.cwd(), '')
   
-  // 优先级：VITE_SITE_TITLE > VITE_SITE_NAME > 默认值
-  const appTitle = env.VITE_SITE_TITLE || env.VITE_SITE_NAME || '猫猫导航'
+  // 核心修改：只读取环境变量，没有任何默认文字。如果没有变量，就是空字符串。
+  const appTitle = env.VITE_SITE_TITLE || ''
 
   return {
     plugins: [
       vue(),
       vueDevTools(),
-      // 核心插件：替换 index.html 中的 %SITE_TITLE%
       {
-        name: 'html-title-transform',
+        name: 'html-transform',
         transformIndexHtml(html) {
-          return html.replace(/%SITE_TITLE%/g, appTitle)
+          // 替换标题
+          let newHtml = html.replace(/%SITE_TITLE%/g, appTitle)
+          
+          // 顺便处理 meta description，如果 html 里有的话
+          const appDesc = env.VITE_SITE_DESCRIPTION || ''
+          newHtml = newHtml.replace(/%SITE_DESCRIPTION%/g, appDesc)
+          
+          return newHtml
         }
       }
     ],
