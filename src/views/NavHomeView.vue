@@ -293,14 +293,25 @@ const scrollToCategory = (categoryId) => {
 
 const checkLockStatus = () => {
   const openLockEnv = import.meta.env.VITE_OPEN_LOCK
-  // 严格检查字符串 "true"
-  const isLockEnabled = String(openLockEnv || '').trim().toLowerCase() === 'true'
+  
+  // 核心修复：更宽松的布尔值检查
+  // 1. 转为字符串
+  // 2. 转为小写
+  // 3. 去除空格
+  // 4. 检查是否为 'true', '1', 'yes', 'on' 中的任意一个
+  const normalizedValue = String(openLockEnv || '').toLowerCase().trim()
+  const isLockEnabled = ['true', '1', 'yes', 'on'].includes(normalizedValue)
+
+  console.log('🔐 Lock Status Check:', { raw: openLockEnv, normalized: normalizedValue, enabled: isLockEnabled })
 
   if (isLockEnabled) {
     isLocked.value = true
     const savedUnlock = localStorage.getItem('nav_unlocked')
-    if (savedUnlock === 'true') {
-      isUnlocked.value = true
+    // 检查本地存储是否已解锁
+    if (savedAuth && savedAuth === 'true') { // 注意这里你原来的代码可能是 savedUnlock
+        isUnlocked.value = true
+    } else if (savedUnlock === 'true') {
+        isUnlocked.value = true
     }
   } else {
     isLocked.value = false
