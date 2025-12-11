@@ -137,7 +137,7 @@ const saving = ref(false)
 
 const activeTab = ref('categories')
 const categories = ref([])
-const navTitle = ref('猫猫导航') 
+const navTitle = ref(import.meta.env.VITE_SITE_TITLE || '导航后台')
 const selectedCategoryId = ref('') 
 
 const envAdminTitle = import.meta.env.VITE_ADMIN_TITLE
@@ -199,10 +199,19 @@ const loadCategories = async () => {
     // 调用 API 获取 GitHub 上最新的 mock_data.js 内容
     const data = await loadCategoriesFromGitHub()
     
-    if (data && data.categories) {
-      categories.value = data.categories
-      navTitle.value = data.title || '猫猫导航'
-      console.log('✅ 成功从 GitHub 加载最新数据')
+    // 修改后：(增加优先级判断：如果环境变量有值，绝不使用 data.title)
+if (data && data.categories) {
+  categories.value = data.categories
+  
+  // 核心逻辑：环境变量优先级最高 > GitHub数据 > 默认值
+  if (import.meta.env.VITE_SITE_TITLE) {
+    navTitle.value = import.meta.env.VITE_SITE_TITLE
+  } else {
+    navTitle.value = data.title || '导航后台'
+  }
+  
+  console.log('✅ 成功从 GitHub 加载最新数据')
+}
     } else {
       console.warn('⚠️ GitHub 数据为空或格式错误，初始化为空分类')
       categories.value = []
